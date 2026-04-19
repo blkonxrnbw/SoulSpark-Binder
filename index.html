@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SoulSpark Connections™ — Resource Binder</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Jost:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & BASE ── */
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --purple:#5a2db8;--purple-d:#3d1e82;--purple-l:#ede5ff;--purple-ll:#f8f5ff;
+  --violet:#7c3aed;--pink:#be185d;--gold:#b07d2a;--gold-l:#fdf5dc;
+  --text:#1e1530;--mid:#6b5b8a;--light:#a99cc2;--border:#e2d9f3;
+  --bg:#f7f4fc;--card:#fff;--white:#fff;
+  --green:#15803d;--green-l:#f0fdf4;
+  --blue:#1d4ed8;--blue-l:#eff6ff;
+  --orange:#c2410c;--orange-l:#fff7ed;
+  --indigo:#4338ca;--indigo-l:#eef2ff;
+  --red:#dc2626;
+  --shadow:0 2px 12px rgba(90,45,184,.10);
+  --shadow-lg:0 8px 40px rgba(90,45,184,.18);
+}
+
+body{
+  font-family:'Jost',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+
+/* ── GATE MODAL ── */
+#gate-overlay{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(20,10,40,.88);
+  backdrop-filter:blur(10px);
+}
+#gate-box{
+  background:var(--white);
+  border-radius:20px;
+  padding:48px 40px;
+  max-width:440px;width:92%;
+  text-align:center;
+  box-shadow:var(--shadow-lg);
+  animation:slideUp .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.gate-symbol{font-size:52px;margin-bottom:12px;}
+.gate-title{font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--purple);margin-bottom:6px;}
+.gate-sub{font-size:13px;color:var(--light);font-style:italic;margin-bottom:32px;}
+#gate-input{
+  width:100%;padding:14px 18px;
+  border:2px solid var(--border);border-radius:12px;
+  font-family:'Space Mono',monospace;font-size:16px;letter-spacing:3px;
+  text-align:center;text-transform:uppercase;
+  color:var(--purple);outline:none;
+  transition:border-color .2s;
+  margin-bottom:8px;
+}
+#gate-input:focus{border-color:var(--purple);}
+#gate-error{color:var(--red);font-size:12px;min-height:16px;margin-bottom:10px;}
+#gate-submit{
+  width:100%;padding:14px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,var(--purple),var(--violet));
+  color:#fff;font-family:'Jost',sans-serif;font-weight:700;
+  font-size:13px;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;transition:opacity .15s;margin-bottom:12px;
+}
+#gate-submit:hover{opacity:.88;}
+.gate-divider{color:var(--light);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;}
+#gate-guest{
+  background:none;border:none;color:var(--light);font-size:13px;
+  cursor:pointer;text-decoration:underline;font-family:'Jost',sans-serif;
+}
+#gate-guest:hover{color:var(--purple);}
+
+/* ── HEADER ── */
+.top{
+  background:var(--white);
+  border-bottom:3px solid var(--purple-l);
+  box-shadow:var(--shadow);
+  position:sticky;top:0;z-index:100;
+}
+.top-inner{
+  max-width:1200px;margin:0 auto;
+  padding:14px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.top-brand{display:flex;align-items:center;gap:12px;}
+.top-symbol{font-size:30px;}
+.top-name{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--purple);font-weight:600;}
+.top-meta{font-size:11px;color:var(--light);margin-top:1px;}
+.top-right{display:flex;align-items:center;gap:10px;}
+
+.sync-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;
+  border:1.5px solid;
+}
+.sync-pill.live{border-color:#86efac;color:#15803d;background:#f0fdf4;}
+.sync-pill.loading{border-color:#fcd34d;color:#92400e;background:#fffbeb;}
+.sync-pill.offline{border-color:#fca5a5;color:#dc2626;background:#fef2f2;}
+.sync-dot{width:7px;height:7px;border-radius:50%;}
+.sync-pill.live .sync-dot{background:#22c55e;}
+.sync-pill.loading .sync-dot{background:#f59e0b;animation:pulse 1s infinite;}
+.sync-pill.offline .sync-dot{background:#ef4444;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.role-badge{
+  font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;
+  letter-spacing:1px;text-transform:uppercase;
+  background:var(--purple-l);color:var(--purple);cursor:pointer;
+  border:1.5px solid var(--border);
+}
+
+/* ── LAYOUT ── */
+.body{display:flex;max-width:1200px;margin:0 auto;width:100%;flex:1;}
+
+/* ── SIDEBAR TABS ── */
+.sidebar{
+  width:160px;flex-shrink:0;
+  background:var(--white);
+  border-right:2px solid var(--border);
+  padding:20px 8px;
+  display:flex;flex-direction:column;gap:4px;
+  position:sticky;top:55px;height:calc(100vh - 55px);overflow-y:auto;
+}
+.tab-btn{
+  width:100%;display:flex;align-items:center;gap:8px;
+  padding:10px 12px;border-radius:10px;border:none;
+  font-family:'Jost',sans-serif;font-size:13px;font-weight:500;
+  color:var(--mid);background:transparent;cursor:pointer;
+  transition:all .15s;text-align:left;
+}
+.tab-btn:hover{background:var(--purple-ll);color:var(--purple);}
+.tab-btn.active{
+  background:var(--purple-l);color:var(--purple);
+  font-weight:700;box-shadow:inset 3px 0 0 var(--purple);
+}
+.tab-icon{font-size:18px;width:22px;text-align:center;}
+.tab-key{
+  margin-top:auto;padding-top:12px;
+  border-top:1px solid var(--border);
+}
+
+/* ── MAIN CONTENT ── */
+.main{flex:1;padding:32px 36px;min-width:0;}
+
+/* ── PAGE HEADERS ── */
+.page-head{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  padding-bottom:20px;margin-bottom:24px;
+  border-bottom:2px solid var(--border);
+}
+.page-title{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;}
+.page-sub{font-size:12px;color:var(--light);margin-top:4px;}
+
+/* ── CARDS ── */
+.card{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:14px;padding:20px;
+  box-shadow:var(--shadow);
+  transition:box-shadow .2s,transform .15s;
+}
+.card:hover{box-shadow:var(--shadow-lg);transform:translateY(-1px);}
+
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media(max-width:900px){.grid-3{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:600px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+/* ── PRACTITIONER CARDS ── */
+.p-card{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:14px;padding:18px;
+  box-shadow:var(--shadow);position:relative;
+  transition:all .2s;
+}
+.p-card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);}
+.p-card.astro-glow{
+  animation:astro-pulse 3s ease-in-out infinite;
+  border-color:var(--violet)!important;
+}
+@keyframes astro-pulse{
+  0%,100%{box-shadow:0 0 8px 3px rgba(124,58,237,.3);}
+  50%{box-shadow:0 0 22px 8px rgba(124,58,237,.55);}
+}
+.astro-badge{
+  position:absolute;top:-10px;right:12px;
+  background:var(--violet);color:#fff;
+  font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;
+  letter-spacing:.5px;
+}
+.p-name{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:var(--purple);}
+.p-modality{font-size:12px;color:var(--violet);font-weight:600;margin-top:2px;}
+.p-type{
+  font-size:9px;font-weight:700;padding:3px 9px;border-radius:10px;
+  letter-spacing:.5px;text-transform:uppercase;
+}
+.p-type.person{background:#dcfce7;color:var(--green);}
+.p-type.other{background:var(--gold-l);color:var(--gold);}
+.p-loc{font-size:11px;color:var(--light);margin-top:6px;}
+.p-desc{font-size:12px;color:var(--mid);margin:8px 0;line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.p-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;}
+.p-tag{font-size:10px;padding:2px 8px;border-radius:8px;}
+.p-tag.mbti{background:var(--purple-l);color:var(--purple);}
+.p-tag.hd{background:var(--blue-l);color:var(--blue);}
+.p-tag.sun{background:var(--gold-l);color:var(--gold);}
+.p-tag.moon{background:#f1f5f9;color:#475569;}
+.p-tag.rising{background:#fce7f3;color:#be185d;}
+.p-tag.area{background:var(--gold-l);color:var(--gold);}
+.p-links{
+  display:flex;gap:12px;padding-top:10px;
+  border-top:1px solid var(--border);
+  font-size:11px;color:var(--light);
+}
+.p-links a{color:var(--light);text-decoration:none;display:flex;align-items:center;gap:3px;}
+.p-links a:hover{color:var(--purple);}
+
+/* ── SEARCH ── */
+.search-wrap{position:relative;margin-bottom:20px;}
+.search-wrap input{
+  width:100%;padding:10px 16px 10px 40px;
+  border:2px solid var(--border);border-radius:12px;
+  font-family:'Jost',sans-serif;font-size:13px;color:var(--text);
+  outline:none;transition:border-color .2s;background:var(--white);
+}
+.search-wrap input:focus{border-color:var(--purple);}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--light);font-size:14px;}
+
+/* ── FORMS ── */
+.f-row{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px;}
+.f-full{margin-bottom:12px;}
+.f-label{font-size:11px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+input[type=text],input[type=date],input[type=url],input[type=email],input[type=tel],textarea,select{
+  width:100%;padding:9px 12px;
+  border:1.5px solid var(--border);border-radius:8px;
+  font-family:'Jost',sans-serif;font-size:13px;color:var(--text);
+  outline:none;transition:border-color .2s;background:var(--white);
+}
+input:focus,textarea:focus,select:focus{border-color:var(--purple);}
+input:disabled,textarea:disabled,select:disabled{opacity:.4;cursor:not-allowed;}
+textarea{resize:vertical;min-height:80px;}
+.save-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:10px 24px;border:none;border-radius:10px;
+  font-family:'Jost',sans-serif;font-weight:700;font-size:13px;
+  color:#fff;cursor:pointer;transition:opacity .15s;
+}
+.save-btn:hover{opacity:.88;}
+.save-btn:disabled{opacity:.35;cursor:not-allowed;}
+.add-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border:none;border-radius:8px;
+  font-family:'Jost',sans-serif;font-weight:600;font-size:12px;
+  color:#fff;cursor:pointer;transition:opacity .15s;
+}
+.add-btn:disabled{opacity:.35;cursor:not-allowed;}
+.add-btn:hover:not(:disabled){opacity:.85;}
+
+/* ── GUEST LOCK BANNER ── */
+.guest-banner{
+  background:var(--purple-ll);border:1.5px solid var(--border);
+  border-radius:12px;padding:12px 16px;
+  font-size:12px;color:var(--mid);text-align:center;
+  margin-bottom:16px;
+}
+.guest-banner a{color:var(--purple);font-weight:600;cursor:pointer;text-decoration:underline;}
+
+/* ── COVER PAGE ── */
+.cover{text-align:center;padding:60px 20px;}
+.cover-title{font-family:'Cormorant Garamond',serif;font-size:52px;color:var(--purple);line-height:1.1;}
+.cover-sub{font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--violet);font-weight:300;margin-top:8px;}
+.cover-desc{font-size:14px;color:var(--light);margin-top:8px;font-style:italic;}
+.cover-form{max-width:400px;margin:40px auto 0;display:flex;flex-direction:column;gap:10px;}
+.cover-sync{
+  display:inline-flex;align-items:center;gap:8px;
+  margin-top:20px;font-size:12px;color:var(--light);
+  padding:6px 14px;border:1px solid var(--border);border-radius:20px;
+}
+.cover-quote{
+  margin-top:32px;font-style:italic;font-size:14px;color:var(--light);
+  font-family:'Cormorant Garamond',serif;font-size:16px;
+}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:60px 20px;color:var(--light);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty p{font-size:13px;}
+
+/* ── FOOTER ── */
+footer{
+  background:var(--white);border-top:2px solid var(--border);
+  text-align:center;padding:20px;
+  font-size:12px;color:var(--light);font-style:italic;
+}
+
+/* ── MOBILE ── */
+@media(max-width:600px){
+  .sidebar{display:none;}
+  .main{padding:20px 16px;}
+  .cover-title{font-size:36px;}
+  .f-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── GATE MODAL ────────────────────────────────────────────── -->
+<div id="gate-overlay">
+  <div id="gate-box">
+    <div class="gate-symbol">✦</div>
+    <h2 class="gate-title">SoulSpark Connections™</h2>
+    <p class="gate-sub">Enter your invite code to access the Resource Binder</p>
+    <input id="gate-input" type="text" placeholder="INVITE CODE" autocomplete="off" spellcheck="false">
+    <div id="gate-error"></div>
+    <button id="gate-submit">✦ Enter the Circle</button>
+    <div class="gate-divider">— or —</div>
+    <button id="gate-guest">Continue as Guest (view only)</button>
+  </div>
+</div>
+
+<!-- ── HEADER ─────────────────────────────────────────────────── -->
+<header class="top">
+  <div class="top-inner">
+    <div class="top-brand">
+      <span class="top-symbol">🧿</span>
+      <div>
+        <div class="top-name">SoulSpark Connections™</div>
+        <div class="top-meta" id="top-meta">Your Living Resource Library</div>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="sync-pill offline" id="sync-pill">
+        <span class="sync-dot"></span>
+        <span id="sync-text">Offline</span>
+      </div>
+      <div class="role-badge" id="role-badge" onclick="reopenGate()">VIEWER</div>
+    </div>
+  </div>
+</header>
+
+<!-- ── BODY ───────────────────────────────────────────────────── -->
+<div class="body">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <button class="tab-btn active" data-tab="cover"><span class="tab-icon">🧿</span>Cover</button>
+    <button class="tab-btn" data-tab="directory"><span class="tab-icon">✦</span>Directory</button>
+    <button class="tab-btn" data-tab="networking"><span class="tab-icon">🤝</span>Networking</button>
+    <button class="tab-btn" data-tab="stores"><span class="tab-icon">🏪</span>Stores</button>
+    <button class="tab-btn" data-tab="people"><span class="tab-icon">👤</span>People</button>
+    <button class="tab-btn" data-tab="expos"><span class="tab-icon">🎪</span>Expos</button>
+    <button class="tab-btn" data-tab="modalities"><span class="tab-icon">🌀</span>Modalities</button>
+    <div class="tab-key">
+      <button class="tab-btn" onclick="reopenGate()" style="font-size:11px;color:var(--light);">
+        <span class="tab-icon">🔑</span><span id="sidebar-role">VIEWER</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main" id="main-content">
+    <!-- Filled by JS -->
+  </main>
+</div>
+
+<footer>
+  <p style="font-family:'Cormorant Garamond',serif;font-size:15px;">This binder evolves with you — cultivate it with intention.</p>
+  <p style="margin-top:4px;font-size:10px;letter-spacing:1px;">✦ SYNERGY ENGINE v1.0 · SOULSPARK · <span id="footer-season"></span> SEASON</p>
+</footer>
+
+<script>
+// ── CONFIGURATION ──────────────────────────────────────────────────────────────
+const APPS_URL = 'https://script.google.com/macros/s/AKfycbzg5yEU77kQPmY3x1qbFORpwPqco9C3Oghj-vE7DN2NUbY7WTz-Vz8IPkW5Jg9Sm1o/exec';
+
+const INVITE_CODES = {
+  'SPARK2025': 'ADMIN',
+  'GUIDE2025': 'EDITOR',
+  'SOUL2025':  'EDITOR',
+  'GUEST':     'VIEWER',
+};
+
+// ── STATE ──────────────────────────────────────────────────────────────────────
+var role = 'VIEWER';
+var practitioners = [];
+var fetchStatus = 'idle';
+var activeTab = 'cover';
+var searchTerm = '';
+var zodiacSeason = getZodiacSeason();
+
+// ── ZODIAC ─────────────────────────────────────────────────────────────────────
+function getZodiacSeason() {
+  var now = new Date(), m = now.getMonth()+1, d = now.getDate();
+  if((m===3&&d>=21)||(m===4&&d<=19)) return 'Aries';
+  if((m===4&&d>=20)||(m===5&&d<=20)) return 'Taurus';
+  if((m===5&&d>=21)||(m===6&&d<=20)) return 'Gemini';
+  if((m===6&&d>=21)||(m===7&&d<=22)) return 'Cancer';
+  if((m===7&&d>=23)||(m===8&&d<=22)) return 'Leo';
+  if((m===8&&d>=23)||(m===9&&d<=22)) return 'Virgo';
+  if((m===9&&d>=23)||(m===10&&d<=22)) return 'Libra';
+  if((m===10&&d>=23)||(m===11&&d<=21)) return 'Scorpio';
+  if((m===11&&d>=22)||(m===12&&d<=21)) return 'Sagittarius';
+  if((m===12&&d>=22)||(m===1&&d<=19)) return 'Capricorn';
+  if((m===1&&d>=20)||(m===2&&d<=18)) return 'Aquarius';
+  return 'Pisces';
+}
+
+// ── GATE ───────────────────────────────────────────────────────────────────────
+function initGate() {
+  // Check session
+  try {
+    var savedRole = sessionStorage.getItem('ss_role');
+    var savedToken = sessionStorage.getItem('ss_token');
+    if(savedRole && INVITE_CODES[savedToken] === savedRole) {
+      setRole(savedRole);
+      closeGate();
+      return;
+    }
+  } catch(e){}
+  document.getElementById('gate-overlay').style.display = 'flex';
+}
+
+function closeGate() {
+  document.getElementById('gate-overlay').style.display = 'none';
+}
+
+function reopenGate() {
+  document.getElementById('gate-input').value = '';
+  document.getElementById('gate-error').textContent = '';
+  document.getElementById('gate-overlay').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('gate-input').focus(); }, 100);
+}
+
+function submitGate() {
+  var code = document.getElementById('gate-input').value.trim().toUpperCase();
+  var r = INVITE_CODES[code];
+  if(!r){ document.getElementById('gate-error').textContent = 'Unrecognised code — check and try again.'; return; }
+  try { sessionStorage.setItem('ss_token', code); sessionStorage.setItem('ss_role', r); } catch(e){}
+  setRole(r);
+  closeGate();
+}
+
+function enterAsGuest() {
+  try { sessionStorage.setItem('ss_token','GUEST'); sessionStorage.setItem('ss_role','VIEWER'); } catch(e){}
+  setRole('VIEWER');
+  closeGate();
+}
+
+function setRole(r) {
+  role = r;
+  document.getElementById('role-badge').textContent = r;
+  document.getElementById('sidebar-role').textContent = r + ' Mode';
+}
+
+document.getElementById('gate-submit').onclick = submitGate;
+document.getElementById('gate-guest').onclick = enterAsGuest;
+document.getElementById('gate-input').addEventListener('keydown', function(e){ if(e.key==='Enter') submitGate(); });
+
+// ── DATA FETCH (JSONP — bypasses CORS) ────────────────────────────────────────
+function fetchDirectory(callback) {
+  var cbName = 'ss_binder_cb_' + Date.now();
+  var tag = document.createElement('script');
+  var url = APPS_URL + '?action=getDirectory&callback=' + cbName;
+  tag.src = url;
+
+  var timeout = setTimeout(function(){
+    cleanup();
+    setSyncStatus('offline');
+    if(callback) callback([]);
+  }, 12000);
+
+  window[cbName] = function(resp) {
+    cleanup();
+    var data = Array.isArray(resp) ? resp : (resp.people || resp.submissions || []);
+    var mapped = data.map(function(row){
+      return {
+        name:                row['full_name']     || row['Name']                 || '',
+        type:                row['role_title']    || row['Type']                 || 'person',
+        modality:            row['modalities']    || row['Primary Modality']      || '',
+        additionalModalities:row['specialty_tags']|| row['Additional Modalities'] || '',
+        description:         row['bio']           || row['Description']           || '',
+        city:                row['location']      || row['City']                  || '',
+        region:              row['service_area']  || row['Region']                || '',
+        country:             row['country']       || row['Country']               || '',
+        areasServed:         row['service_area']  || row['Areas Served']          || '',
+        phone:               row['phone']         || row['Phone']                 || '',
+        email:               row['email']         || row['Email']                 || '',
+        website:             row['website']       || row['Website']               || '',
+        mbti:                row['mbti']          || row['MBTI']                  || '',
+        humanDesign:         row['hd_type']       || row['Human Design']          || '',
+        sunSign:             row['sun_sign']       || row['Sun Sign']              || '',
+        moonSign:            row['moon_sign']      || row['Moon Sign']             || '',
+        risingSign:          row['rising_sign']    || row['Rising Sign']           || '',
+        notes:               row['notes']         || row['Notes']                 || '',
+      };
+    }).filter(function(p){ return p.name; });
+
+    practitioners = mapped;
+    setSyncStatus('live');
+    if(callback) callback(mapped);
+    render();
+  };
+
+  tag.onerror = function(){
+    cleanup();
+    setSyncStatus('offline');
+    if(callback) callback([]);
+  };
+
+  function cleanup(){
+    clearTimeout(timeout);
+    delete window[cbName];
+    if(tag.parentNode) tag.parentNode.removeChild(tag);
+  }
+
+  setSyncStatus('loading');
+  document.head.appendChild(tag);
+}
+
+// Auto-refresh every 30s
+setInterval(function(){ fetchDirectory(null); }, 30000);
+
+// ── SYNC STATUS UI ─────────────────────────────────────────────────────────────
+function setSyncStatus(status) {
+  fetchStatus = status;
+  var pill = document.getElementById('sync-pill');
+  var txt  = document.getElementById('sync-text');
+  pill.className = 'sync-pill ' + status;
+  if(status==='live')    txt.textContent = 'Live Sync · ' + practitioners.length + ' entries';
+  if(status==='loading') txt.textContent = 'Syncing…';
+  if(status==='offline') txt.textContent = 'Offline';
+  render();
+}
+
+// ── TABS ───────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn[data-tab]').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    activeTab = btn.dataset.tab;
+    searchTerm = '';
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    render();
+  });
+});
+
+// ── RENDER ─────────────────────────────────────────────────────────────────────
+function render() {
+  var main = document.getElementById('main-content');
+  var isGuest = role === 'VIEWER';
+  var canEdit = role === 'ADMIN' || role === 'EDITOR';
+  var disAttr = isGuest ? 'disabled' : '';
+
+  var filtered = practitioners.filter(function(p){
+    if(!searchTerm) return true;
+    var st = searchTerm.toLowerCase();
+    return [p.name,p.modality,p.mbti,p.humanDesign,p.sunSign,p.areasServed,p.description]
+      .some(function(v){ return (v||'').toLowerCase().includes(st); });
+  });
+
+  var html = '';
+
+  if(activeTab === 'cover') {
+    html = '<div class="cover">' +
+      '<div class="cover-title">SoulSpark Connections™</div>' +
+      '<div class="cover-sub">Resource Guide &amp; Connection Binder</div>' +
+      '<div class="cover-desc">Relationships · Opportunities · Offerings</div>' +
+      '<div class="cover-desc" style="margin-top:6px;">☉ Current season: ' + zodiacSeason + ' · Synergy Engine active</div>' +
+      '<div class="cover-form">' +
+        '<input type="text" placeholder="Name / Brand">' +
+        '<input type="text" placeholder="Year or Season">' +
+        '<textarea placeholder="Inspirational quote or affirmation" rows="3"></textarea>' +
+      '</div>' +
+      '<div class="cover-sync">' +
+        '<span class="sync-dot" style="width:8px;height:8px;border-radius:50%;background:' + (fetchStatus==='live'?'#22c55e':fetchStatus==='loading'?'#f59e0b':'#ef4444') + ';display:inline-block;"></span>' +
+        (fetchStatus==='live' ? 'Live Sync · ' + practitioners.length + ' practitioners' :
+         fetchStatus==='loading' ? 'Connecting to Google Sheet…' : 'Offline Mode') +
+      '</div>' +
+      '<div class="cover-quote">"Your network is your net worth — cultivate it with intention"</div>' +
+    '</div>';
+  }
+
+  else if(activeTab === 'directory') {
+    var people = filtered.filter(function(p){ return p.type!=='modality'; });
+    html = '<div>' +
+      '<div class="page-head">' +
+        '<div><div class="page-title" style="color:var(--violet)">Live Practitioner Directory</div>' +
+        '<div class="page-sub">' + (fetchStatus==='live' ? '✓ Synced · ' + practitioners.length + ' entries · ☉ ' + zodiacSeason : 'Offline — configure APPS_URL to sync') + '</div></div>' +
+        '<div class="sync-pill ' + fetchStatus + '"><span class="sync-dot"></span>' + (fetchStatus==='live'?'Live':'Offline') + '</div>' +
+      '</div>' +
+      '<div class="search-wrap"><span class="search-icon">🔍</span>' +
+        '<input type="text" placeholder="Search name, modality, MBTI, HD type, sun sign, region…" value="' + escHtml(searchTerm) + '" oninput="searchTerm=this.value;render();">' +
+      '</div>';
+    if(people.length === 0) {
+      html += '<div class="empty"><div class="empty-icon">✦</div><p>' +
+        (fetchStatus==='offline' ? 'Offline mode — URL connecting to Google Sheet…' :
+         searchTerm ? 'No practitioners match your search' : 'No practitioners yet') + '</p></div>';
+    } else {
+      html += '<div class="grid-3">' + people.map(practitionerCard).join('') + '</div>';
+    }
+    html += '</div>';
+  }
+
+  else if(activeTab === 'people') {
+    var peeps = filtered.filter(function(p){ return p.type!=='modality'; });
+    html = '<div>' +
+      '<div class="page-head">' +
+        '<div><div class="page-title" style="color:var(--green)">People &amp; Contacts</div>' +
+        '<div class="page-sub">Pulled from Live Directory · ☉ ' + zodiacSeason + '</div></div>' +
+      '</div>' +
+      '<div class="search-wrap"><span class="search-icon">🔍</span>' +
+        '<input type="text" placeholder="Search name, modality, MBTI, sun sign…" value="' + escHtml(searchTerm) + '" oninput="searchTerm=this.value;render();">' +
+      '</div>';
+    if(peeps.length===0) {
+      html += '<div class="empty"><div class="empty-icon">👤</div><p>' + (fetchStatus==='offline'?'Offline mode — syncing…':'No people found') + '</p></div>';
+    } else {
+      html += '<div class="grid-2">' + peeps.map(practitionerCard).join('') + '</div>';
+    }
+    html += '</div>';
+  }
+
+  else if(activeTab === 'networking') {
+    html = sectionPage('Aligned Business Networking &amp; Communities', 'var(--blue)', '#1d4ed8',
+      isGuest,
+      '<div class="f-row">' +
+        field('Organization / Group Name','','text',isGuest) + field('Focus / Industry','','text',isGuest) +
+        field('Location','','text',isGuest) + field('Contact Person','','text',isGuest) +
+        field('Website / Link','','url',isGuest) + field('Email / Phone','','text',isGuest) +
+      '</div>' +
+      '<div class="f-full"><label class="f-label">Format</label><div style="display:flex;gap:16px;margin-top:4px;">' +
+        ['Online','In-Person','Hybrid'].map(function(f){ return '<label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox"' + (isGuest?' disabled':'') + '> ' + f + '</label>'; }).join('') +
+      '</div></div>' +
+      '<div class="f-full">' + field('Why This Is Valuable','textarea','',isGuest) + '</div>' +
+      '<div class="f-full">' + field('Notes / Impressions','textarea','',isGuest) + '</div>'
+    );
+  }
+
+  else if(activeTab === 'stores') {
+    html = sectionPage('Retail Stores, Vendors &amp; Sales Opportunities', 'var(--pink)', '#be185d',
+      isGuest,
+      '<div class="f-row">' +
+        field('Store Name','','text',isGuest) + field('Location','','text',isGuest) +
+        field('Website / Instagram','','url',isGuest) + field('Buyer / Manager Name','','text',isGuest) +
+      '</div>' +
+      '<div class="f-full"><label class="f-label">Opportunity Type</label><div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:4px;">' +
+        ['Consignment','Wholesale','Pop-Up','Permanent Vendor','Festival','Market','Expo','Retail Shelf'].map(function(o){
+          return '<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;"><input type="checkbox"' + (isGuest?' disabled':'') + '> ' + o + '</label>';
+        }).join('') +
+      '</div></div>' +
+      '<div class="f-full">' + field('Notes / Impressions','textarea','',isGuest) + '</div>'
+    );
+  }
+
+  else if(activeTab === 'expos') {
+    html = sectionPage('Expos, Markets &amp; Upcoming Events', 'var(--orange)', '#c2410c',
+      isGuest,
+      '<div class="f-row">' +
+        field('Event / Expo Name','','text',isGuest) + field('Location / City','','text',isGuest) +
+        field('Date(s)','','text',isGuest) + field('Organizer Contact','','text',isGuest) +
+        field('Booth Fee','','text',isGuest) + field('Website','','url',isGuest) +
+      '</div>' +
+      '<div class="f-full">' + field('Notes for Next Time','textarea','',isGuest) + '</div>'
+    );
+  }
+
+  else if(activeTab === 'modalities') {
+    var mods = filtered.filter(function(p){ return p.type==='modality'; });
+    var modsHtml = mods.length ? '<div><div class="f-label" style="margin-bottom:8px;">From Live Directory</div>' +
+      '<div class="grid-3">' + mods.map(function(p){
+        return '<div class="card"><div style="font-family:Cormorant Garamond,serif;font-size:16px;font-weight:600;color:var(--indigo)">' + escHtml(p.name) + '</div>' +
+          (p.description ? '<p style="font-size:11px;color:var(--mid);margin-top:4px;line-height:1.5;">' + escHtml(p.description.slice(0,120)) + '</p>' : '') + '</div>';
+      }).join('') + '</div></div>' : '';
+
+    html = sectionPage('Modalities, Gifts &amp; Offerings Library', 'var(--indigo)', '#4338ca',
+      isGuest,
+      modsHtml +
+      '<div class="f-full">' + field('Modality Name (e.g. Reiki, Human Design, Tarot…)','','text',isGuest) + '</div>' +
+      '<div class="f-full">' + field("Description (Layman's Terms)",'textarea','',isGuest) + '</div>' +
+      '<div class="f-full">' + field('How You Integrate This Modality','textarea','',isGuest) + '</div>'
+    );
+  }
+
+  main.innerHTML = html;
+  document.getElementById('top-meta').textContent = 'Your Living Resource Library · ☉ ' + zodiacSeason + ' · ' + role + ' Mode';
+  document.getElementById('footer-season').textContent = zodiacSeason.toUpperCase();
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function field(label, type, inputType, disabled) {
+  var isTA = type === 'textarea' || inputType === 'textarea';
+  var d = disabled ? ' disabled' : '';
+  if(isTA) {
+    return '<div class="f-full"><label class="f-label">' + label + '</label>' +
+      '<textarea rows="3"' + d + ' placeholder="' + label + '"></textarea></div>';
+  }
+  return '<div><label class="f-label">' + label + '</label>' +
+    '<input type="' + (inputType||'text') + '"' + d + ' placeholder="' + label + '"></div>';
+}
+
+function sectionPage(title, color, btnColor, isGuest, formContent) {
+  return '<div>' +
+    '<div class="page-head">' +
+      '<div class="page-title" style="color:' + color + '">' + title + '</div>' +
+      (isGuest ? '' : '<button class="add-btn" style="background:' + btnColor + '">+ Add Entry</button>') +
+    '</div>' +
+    (isGuest ? '<div class="guest-banner">🔒 Enter an invite code to add or edit entries. <a onclick="reopenGate()">Enter code</a></div>' : '') +
+    '<div class="card" style="border-color:' + color + '20">' +
+      formContent +
+      '<button class="save-btn" style="background:' + btnColor + ';margin-top:8px;"' + (isGuest?' disabled':'') + '>Save Entry</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function practitionerCard(p) {
+  var inSeason = p.sunSign && p.sunSign === zodiacSeason;
+  var tags = '';
+  if(p.mbti)        tags += '<span class="p-tag mbti">' + escHtml(p.mbti) + '</span>';
+  if(p.humanDesign) tags += '<span class="p-tag hd">' + escHtml(p.humanDesign) + '</span>';
+  if(p.sunSign)     tags += '<span class="p-tag sun">☉ ' + escHtml(p.sunSign) + '</span>';
+  if(p.moonSign)    tags += '<span class="p-tag moon">☾ ' + escHtml(p.moonSign) + '</span>';
+  if(p.risingSign)  tags += '<span class="p-tag rising">↑ ' + escHtml(p.risingSign) + '</span>';
+
+  var areas = '';
+  if(p.areasServed) {
+    areas = p.areasServed.split('|').map(function(a){
+      return '<span class="p-tag area">' + escHtml(a.trim()) + '</span>';
+    }).join('');
+  }
+
+  var links = '';
+  if(p.phone)   links += '<a href="tel:' + escHtml(p.phone) + '">📞 ' + escHtml(p.phone) + '</a>';
+  if(p.email)   links += '<a href="mailto:' + escHtml(p.email) + '">✉ Email</a>';
+  if(p.website) links += '<a href="' + escHtml(p.website) + '" target="_blank" rel="noreferrer">🌐 Web</a>';
+
+  return '<div class="p-card' + (inSeason?' astro-glow':'') + '">' +
+    (inSeason ? '<span class="astro-badge">☉ ' + zodiacSeason + ' Season</span>' : '') +
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">' +
+      '<div><div class="p-name">' + escHtml(p.name) + '</div>' +
+        (p.modality ? '<div class="p-modality">' + escHtml(p.modality) + '</div>' : '') +
+      '</div>' +
+      '<span class="p-type ' + (p.type==='person'?'person':'other') + '">' + escHtml(p.type||'person') + '</span>' +
+    '</div>' +
+    ((p.city||p.country) ? '<div class="p-loc">📍 ' + [p.city,p.region,p.country].filter(Boolean).map(escHtml).join(', ') + '</div>' : '') +
+    (p.description ? '<div class="p-desc">' + escHtml(p.description) + '</div>' : '') +
+    (tags ? '<div class="p-tags">' + tags + '</div>' : '') +
+    (areas ? '<div class="p-tags">' + areas + '</div>' : '') +
+    (links ? '<div class="p-links">' + links + '</div>' : '') +
+  '</div>';
+}
+
+// ── BOOT ───────────────────────────────────────────────────────────────────────
+initGate();
+render();
+fetchDirectory(function(){ render(); });
+</script>
+</body>
+</html>
